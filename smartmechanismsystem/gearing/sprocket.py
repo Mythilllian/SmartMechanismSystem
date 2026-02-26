@@ -1,4 +1,4 @@
-from exceptions import InvalidStageGivenException, NoStagesGivenException
+from smartmechanismsystem.exceptions.exceptions import InvalidStageGivenException, NoStagesGivenException
 
 
 class Sprocket:

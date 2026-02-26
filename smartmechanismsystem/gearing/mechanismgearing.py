@@ -1,5 +1,5 @@
-from .gearbox import GearBox
-from .sprocket import Sprocket
+from smartmechanismsystem.gearing.gearbox import GearBox
+from smartmechanismsystem.gearing.sprocket import Sprocket
 
 
 class MechanismGearing:
