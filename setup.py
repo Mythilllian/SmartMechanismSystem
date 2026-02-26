@@ -8,7 +8,7 @@ setup(
     license="Unlicense",
     packages=["smartmechanismsystem"],
     install_requires=[
-        "wpilib==2026.2.1.1",
+        "lemonlib @ git+https://github.com/FRC5113/LemonLib.git@main",
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",
