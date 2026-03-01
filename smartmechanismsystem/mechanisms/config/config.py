@@ -1,12 +1,10 @@
-from wpimath.units import radians_per_second, meters, kilograms
+from wpimath.units import radians_per_second, meters, kilograms, kilogram_square_meters, meters_per_second
 from wpilib import Color, Color8Bit
 from wpimath.geometry import Translation3d
 from smartmechanismsystem.motorcontrollers.smartmotorcontroller import (
     SmartMotorController,
 )
-from smartmechanismsystem.motorcontrollers.smartmotorcontrollerconfig import (
-    TelemetryVerbosity,
-)
+from smartmechanismsystem.motorcontrollers.smartmotorcontrollerconfig import SmartMotorControllerConfig
 from smartmechanismsystem.exceptions.exceptions import FlyWheelConfigurationException
 from enum import Enum, auto
 
@@ -78,10 +76,10 @@ class FlyWheelConfig:
     _min_velocity: radians_per_second
     _max_velocity: radians_per_second
     _telemetry_name: str
-    _telemetry_verbosity: TelemetryVerbosity
+    _telemetry_verbosity: SmartMotorControllerConfig.TelemetryVerbosity
     _diameter: meters
     _weight: kilograms
-    _moi: float
+    _moi: kilogram_square_meters
     _sim_color: Color8Bit = Color8Bit(Color.kOrange)
     _mechanism_position_config: MechanismPositionConfig = MechanismPositionConfig()
     _use_speedometer: bool = False
@@ -123,15 +121,147 @@ class FlyWheelConfig:
 
     def with_lower_soft_limit(self, speed: radians_per_second) -> "FlyWheelConfig":
         self._min_velocity = speed
-        if not self._min_velocity:
-            self._speedometer_max_velocity = self._max_velocity
-        elif not self._max_velocity:
-            self._speedometer_max_velocity = self._min_velocity
-        elif self._min_velocity > self._max_velocity:
-            self._speedometer_max_velocity = self._min_velocity
-            temp = self._min_velocity
-            self._min_velocity = self._max_velocity
-            self._max_velocity = temp
+
+        if self._min_velocity > self._max_velocity:
+            self._max_velocity, self._min_velocity = self._min_velocity, self._max_velocity
+        self._speedometer_max_velocity = max(abs(self._max_velocity), abs(self._min_velocity))
         return self
 
-    # TODO finish FlyWheelConfig
+    def with_upper_soft_limit(self, speed: radians_per_second) -> "FlyWheelConfig":
+        self._max_velocity = speed
+
+        if self._min_velocity > self._max_velocity:
+            self._max_velocity, self._min_velocity = self._min_velocity, self._max_velocity
+        self._speedometer_max_velocity = max(abs(self._max_velocity), abs(self._min_velocity))
+        return self
+
+    def with_soft_limit(self, low: radians_per_second, high: radians_per_second) -> "FlyWheelConfig":
+        self._min_velocity = low
+        self._max_velocity = high
+
+        if self._min_velocity > self._max_velocity:
+            self._max_velocity, self._min_velocity = self._min_velocity, self._max_velocity
+        self._speedometer_max_velocity = max(abs(self._max_velocity), abs(self._min_velocity))
+        return self
+    
+    def with_speedometer_simulation(self, max_velocity: radians_per_second = _speedometer_max_velocity) -> "FlyWheelConfig":
+        if(not self._speedometer_max_velocity):
+            raise FlyWheelConfigurationException(
+                "Speedometer max velocity not set.",
+                "Cannot use speedometer simulation!",
+                "Set it with_speedometer_simulation(radians_per_second)",
+            )
+        self._use_speedometer = True
+        self._speedometer_max_velocity = max_velocity
+        return self
+
+    def disable_speedometer_simulation(self) -> "FlyWheelConfig":
+        self._use_speedometer = False
+        return self
+    
+    def is_using_speedometer_simulation(self) -> bool:
+        return self._use_speedometer
+    
+    def get_speedometer_max_velocity(self) -> radians_per_second:
+        return self._speedometer_max_velocity
+    
+    def with_sim_color(self, color: Color8Bit) -> "FlyWheelConfig":
+        self._sim_color = color
+        return self
+    
+    def with_moment_of_inertia(self, moi: kilogram_square_meters) -> "FlyWheelConfig":
+        if self._motor:
+            self._motor.get_config().with_moment_of_inertia(moi)
+        self._moi = moi
+        return self
+    
+    def with_moment_of_inertia_from_length_and_mass(self, length: meters, mass: kilograms) -> "FlyWheelConfig":
+        moi = 0.5 * mass * (length / 2) ** 2
+        return self.with_moment_of_inertia(moi)
+    
+    def with_diameter(self, diameter: meters) -> "FlyWheelConfig":
+        self._diameter = diameter
+        return self
+    
+    def with_mass(self, mass: kilograms) -> "FlyWheelConfig":
+        self._weight = mass
+        return self
+    
+    def with_mechanism_position_config(self, config: MechanismPositionConfig) -> "FlyWheelConfig":
+        self._mechanism_position_config = config
+        return self
+    
+    def with_telemetry(self, name: str, verbosity: SmartMotorControllerConfig.TelemetryVerbosity, network_root = _network_table_name) -> "FlyWheelConfig":
+        self._telemetry_name = name
+        self._telemetry_verbosity = verbosity
+        self._network_table_name = network_root
+        return self
+    
+    def apply_config(self) -> bool:
+        if not self._motor:
+            raise FlyWheelConfigurationException(
+                "SmartMotorController not set!",
+                "FlyWheel cannot be configured",
+                "apply_config()",
+            )
+        return self._motor.apply_config(self._motor.get_config())
+    
+    def get_diameter(self) -> meters:
+        return self._diameter
+
+    def get_moment_of_inertia(self) -> kilogram_square_meters:
+        if self._moi:
+            return self._moi
+        elif(self._diameter and self._weight):
+            return 0.5 * self._weight * (self._diameter / 2) ** 2
+        else:
+            raise FlyWheelConfigurationException(
+                "FlyWheel diameter and weight or MOI must be set!",
+                "Cannot get the MOI!",
+                "withDiameter(Distance).withMass(Mass) OR FlyWheelConfig.withMOI()"
+            )
+    
+    def get_telemetry_verbosity(self) -> SmartMotorControllerConfig.TelemetryVerbosity:
+        return self._telemetry_verbosity
+    
+    def get_upper_soft_limit(self) -> radians_per_second:
+        return self._max_velocity
+    
+    def get_lower_soft_limit(self) -> radians_per_second:
+        return self._min_velocity
+    
+    def get_telemetry_name(self) -> str:
+        return self._telemetry_name
+    
+    def get_motor(self) -> SmartMotorController:
+        if self._motor:
+            return self._motor
+        raise FlyWheelConfigurationException(
+            "SmartMotorController not set!",
+            "FlyWheel cannot be configured",
+            "get_motor_controller()",
+        )
+    
+    def get_sim_color(self) -> Color8Bit:
+        return self._sim_color
+    
+    def get_mechanism_position_config(self) -> MechanismPositionConfig:
+        return self._mechanism_position_config
+    
+    def get_circumference(self) -> meters:
+        if not self._diameter:
+            raise FlyWheelConfigurationException(
+                "Flywheel diameter is empty",
+                "Cannot run speed without diameter.",
+                "get_circumference()",
+            )
+        from math import pi
+        return self._diameter * pi
+    
+    def get_linear_velocity(self, velocity: radians_per_second) -> meters_per_second:
+        from math import pi
+        return self.get_circumference() * velocity / (2 * pi)
+    
+    def get_angular_velocity(self, velocity: meters_per_second) -> radians_per_second:
+        from math import pi
+        return velocity * (2 * pi) / self.get_circumference()
