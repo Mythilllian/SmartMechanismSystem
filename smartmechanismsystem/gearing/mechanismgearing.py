@@ -1,3 +1,5 @@
+from typing import Optional
+
 from smartmechanismsystem.gearing.gearbox import GearBox
 from smartmechanismsystem.gearing.sprocket import Sprocket
 
@@ -6,7 +8,7 @@ class MechanismGearing:
     """
     Mechanism gearing for conversions from the motor output to the mechanism output.
     """
-    _GEARBOX: GearBox
+    _gearbox: GearBox
     """
     Mechanism gearbox attached to the motor.
     """
@@ -15,15 +17,23 @@ class MechanismGearing:
     Mechanism sprockets attached to the gearbox.
     """
 
-    def __init__(self, gearbox: GearBox, sprocket: Sprocket = None):
+    def __init__(self, gearbox: GearBox, sprocket: Optional[Sprocket] = None):
         """
         Initialize the :class:`MechanismGearing` with a :class:`GearBox` and :class:`Sprocket`
         
         :param gearbox: :class:`GearBox` attached to the motor.
         :param sprocket: :class:`Sprocket` attached to the gearbox.
         """
-        self._GEARBOX = gearbox
+        self._gearbox = gearbox
         self._sprocket = sprocket
+
+    @staticmethod
+    def from_reduction_ratios(*reduction_ratios: float) -> "MechanismGearing":
+        return MechanismGearing(GearBox.from_reduction_stages(*reduction_ratios))
+    
+    @staticmethod
+    def from_reduction_ratio(reduction_ratio: float) -> "MechanismGearing":
+        return MechanismGearing(GearBox.from_reduction_stages(reduction_ratio))
 
     def get_rotor_to_mechanism_ratio(self) -> float:
         """
@@ -31,7 +41,7 @@ class MechanismGearing:
 
         :return: OUT:IN or OUT/IN ratio to use for sensor to mechanism calculations.
         """
-        ratio = self._GEARBOX.get_input_to_output_conversion_factor()
+        ratio = self._gearbox.get_input_to_output_conversion_factor()
         if self._sprocket:
             ratio *= self._sprocket.get_input_to_output_conversion_factor()
         return ratio
@@ -42,7 +52,7 @@ class MechanismGearing:
 
         :return: IN:OUT or IN/OUT to use for mechanism to sensor calculations.
         """
-        ratio = self._GEARBOX.get_output_to_input_conversion_factor()
+        ratio = self._gearbox.get_output_to_input_conversion_factor()
         if self._sprocket:
             ratio *= self._sprocket.get_output_to_input_conversion_factor()
         return ratio
@@ -54,5 +64,5 @@ class MechanismGearing:
         :param i: Numerator.
         :return: :class:`MechanismGearing` for chaining.
         """
-        self._GEARBOX.div(i)
+        self._gearbox.div(i)
         return self

@@ -1,3 +1,5 @@
+__all__ = ["ArmConfigurationException", "DifferentialMechanismConfigurationException", "DoubleJointedArmConfigurationException", "ElevatorConfigurationException", "FlyWheelConfigurationException", "InvalidStageGivenException", "MotorNotPresentException", "NoStagesGivenException", "PivotConfigurationException", "SmartMotorControllerConfigurationException", "SwerveDriveConfigurationException"]
+
 class ArmConfigurationException(RuntimeError):
     """
     Exception for when the Arm is configured incorrectly
@@ -11,7 +13,7 @@ class ArmConfigurationException(RuntimeError):
         :param remedy_function: Remedy function to use.
         """
         self.message = message + "!\n" + result + "\nPlease use ArmConfig." + remedy_function + " to fix this error."
-        super(self.message)
+        super().__init__(self.message)
 
 class DifferentialMechanismConfigurationException(RuntimeError):
     """
@@ -26,9 +28,9 @@ class DifferentialMechanismConfigurationException(RuntimeError):
         :param remedy_function: Remedy function to use.
         """
         self.message = message + "!\n" + result + "\nPlease use DifferentialMechanism." + remedy_function + " to fix this error."
-        super(self.message)
+        super().__init__(self.message)
 
-class DifferentialMechanismConfigurationException(RuntimeError):
+class DoubleJointedArmConfigurationException(RuntimeError):
     """
     Exception for when the Arm is configured incorrectly.
     """
@@ -41,7 +43,7 @@ class DifferentialMechanismConfigurationException(RuntimeError):
         :param remedy_function: Remedy function to use.
         """
         self.message = message + "!\n" + result + "\nPlease use ArmConfig." + remedy_function + " to fix this error."
-        super(self.message)
+        super().__init__(self.message)
 
 class ElevatorConfigurationException(RuntimeError):
     """
@@ -56,7 +58,7 @@ class ElevatorConfigurationException(RuntimeError):
         :param remedy_function: Remedy function to use.
         """
         self.message = message + "!\n" + result + "\nPlease use ElevatorConfig." + remedy_function + " to fix this error."
-        super(self.message)
+        super().__init__(self.message)
 
 class FlyWheelConfigurationException(RuntimeError):
     """
@@ -71,7 +73,7 @@ class FlyWheelConfigurationException(RuntimeError):
         :param remedy_function: Remedy function to use.
         """
         self.message = message + "!\n" + result + "\nPlease use FlyWheelConfig." + remedy_function + " to fix this error."
-        super(self.message)
+        super().__init__(self.message)
 
 class InvalidStageGivenException(RuntimeError):
     """
@@ -84,7 +86,7 @@ class InvalidStageGivenException(RuntimeError):
         :param stage: Stage given.
         """
         self.message = "Invalid stage given! '" + stage + "'; should be in the format of 'IN:OUT'!"
-        super(self.message)
+        super().__init__(self.message)
 
 class MotorNotPresentException(RuntimeError):
     """
@@ -97,7 +99,7 @@ class MotorNotPresentException(RuntimeError):
         :param mechanism_type: Name of the mechanism
         """
         self.message = mechanism_type + " primary motor not present! Please set one using `setMotor(SmartMotorController.create(MOTOR_CONTROLLER, DCMotor.getNEO(1))`"
-        super(self.message)
+        super().__init__(self.message)
 
 class NoStagesGivenException(RuntimeError):
     """
@@ -108,7 +110,7 @@ class NoStagesGivenException(RuntimeError):
         Constructs exception for failure to provide stages.
         """
         self.message = "No stages given!"
-        super(self.message)
+        super().__init__(self.message)
 
 class PivotConfigurationException(RuntimeError):
     """
@@ -122,8 +124,8 @@ class PivotConfigurationException(RuntimeError):
         :param result: Result of the configuration.
         :param remedy_function: Remedy function to use.
         """
-        self.message = message + "!\n" + result + "\nPlease use PivotConfig." + remedyFunction + " to fix this error."
-        super(self.message)
+        self.message = message + "!\n" + result + "\nPlease use PivotConfig." + remedy_function + " to fix this error."
+        super().__init__(self.message)
 
 class SmartMotorControllerConfigurationException(RuntimeError):
     """
@@ -137,8 +139,8 @@ class SmartMotorControllerConfigurationException(RuntimeError):
         :param result: Result of the configuration.
         :param remedy_function: Remedy function to use.
         """
-        self.message = message + "!\n" + result + "\nPlease use SmartMotorControllerConfig." + remedyFunction + " to fix this error."
-        super(self.message)
+        self.message = message + "!\n" + result + "\nPlease use SmartMotorControllerConfig." + remedy_function + " to fix this error."
+        super().__init__(self.message)
 
 class SwerveDriveConfigurationException(RuntimeError):
     """
@@ -152,5 +154,5 @@ class SwerveDriveConfigurationException(RuntimeError):
         :param result: Result of the configuration.
         :param remedy_function: Remedy function to use.
         """
-        self.message = message + "!\n" + result + "\nPlease use SwerveDriveConfig." + remedyFunction + " to fix this error."
-        super(self.message)
+        self.message = message + "!\n" + result + "\nPlease use SwerveDriveConfig." + remedy_function + " to fix this error."
+        super().__init__(self.message)

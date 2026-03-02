@@ -1,9 +1,14 @@
 from abc import ABC, abstractmethod
+from smartmechanismsystem.motorcontrollers.smartmotorcontrollerconfig import SmartMotorControllerConfig
 from smartmechanismsystem.telemetry.telemetryfields import BooleanTelemetryField, DoubleTelemetryField
+from smartmechanismsystem.telemetry.telemetry import SmartMotorControllerTelemetry
 
 #TODO: expand stub
 
 class SmartMotorController(ABC):
+    _telemetry: SmartMotorControllerTelemetry = SmartMotorControllerTelemetry()
+    _config: SmartMotorControllerConfig = SmartMotorControllerConfig()
+    
     @abstractmethod
     def get_unsupported_telemetry_fields(self) -> tuple[list[BooleanTelemetryField], list[DoubleTelemetryField]]:
         """

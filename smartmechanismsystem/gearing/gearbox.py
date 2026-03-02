@@ -21,8 +21,9 @@ class GearBox:
         
         :param reduction_stage: Reduction stages where the number is > 0 to indicate a reduction.
         """
-        self.setup_gear_box(reduction_stage)
+        self.setup_gearbox(reduction_stage)
 
+    @staticmethod
     def from_reduction_stages(*reduction_stages: float) -> "GearBox":
         """
         Create the gearbox given the reduction stages of the gearbox.
@@ -30,8 +31,9 @@ class GearBox:
         :param reduction_stages: Reduction stages where the number is > 0 to indicate a reduction.
         :return: The gearbox created.
         """
-        return GearBox(reduction_stages)
+        return GearBox(list(reduction_stages))
 
+    @staticmethod
     def from_stages(*reduction_stage: str) -> "GearBox":
         """
         Create the gearbox given the reduction stages of the gearbox.
@@ -39,7 +41,7 @@ class GearBox:
         :param reduction_stage: Stages in the format of "IN:OUT". For example, "3:1"
         :return: The gearbox created.
         """
-        stages = []
+        stages: list[float] = []
         for stage in reduction_stage:
             parts = stage.split(":")
             if len(parts) == 0:
@@ -49,6 +51,7 @@ class GearBox:
             stages.append(_in / _out)
         return GearBox(stages)
 
+    @staticmethod
     def from_teeth(*teeth: int) -> "GearBox":
         """
         Create the gearbox given the teeth of each gear.
@@ -61,7 +64,7 @@ class GearBox:
 
         reduction_ratio = 1.0
 
-        for i in len(teeth):
+        for i in range(len(teeth) - 1):
             if teeth[i] <= 0 or teeth[i + 1] <= 0:
                 raise ValueError("Gear teeth counts must be positive integers")
 
@@ -76,7 +79,7 @@ class GearBox:
         :param reduction_stage: Reduction stages where the number is > 0 to indicate a reduction.
         """
         self.reduction_stages = reduction_stage
-        if len(self.reduction_stages):
+        if len(self.reduction_stages) == 0:
             raise NoStagesGivenException()
         gearbox = 1
         for stage in self.reduction_stages:

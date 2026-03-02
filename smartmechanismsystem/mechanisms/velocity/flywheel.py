@@ -1,7 +1,7 @@
 from smartmechanismsystem.mechanisms.velocity.smartvelocitymechanism import (
     SmartVelocityMechanism,
 )
-from smartmechanismsystem.mechanisms.config.config import FlyWheelConfig
+from smartmechanismsystem.mechanisms.config.mechanismpositionconfig import FlyWheelConfig
 
 
 # Stub, TODO

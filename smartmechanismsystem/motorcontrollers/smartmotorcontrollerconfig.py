@@ -1,13 +1,14 @@
 from math import pi
+from typing import Optional
 from commands2 import Subsystem
-from wpimath.controller import SimpleMotorFeedforward, ElevatorFeedforward, ArmFeedforward
-from wpimath.trajectory import TrapezoidalProfile, ExponentialProfileMeterVolts
+from wpimath.controller import SimpleMotorFeedforwardMeters, ElevatorFeedforward, ArmFeedforward
+from wpimath.trajectory import TrapezoidProfile, ExponentialProfileMeterVolts
 from wpimath.controller import PIDController
 from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.units import meters, seconds, volts, radians, celsius, kilogram_square_meters, kilograms, amperes, hertz, meters_per_second, radians_per_second, meters_per_second_squared, radians_per_second_squared
-from wpilib import RobotBase, DriverStation
-import hal
-from hal import tResourceType
+from wpilib import RobotBase, reportWarning
+# import hal
+# from hal import tResourceType
 from enum import Enum, auto
 
 from smartmechanismsystem.exceptions.exceptions import SmartMotorControllerConfigurationException
@@ -44,8 +45,9 @@ class SmartMotorControllerConfig:
         SimpleFeedforward = auto()
         ArmFeedforward = auto()
         ElevatorFeedforward = auto()
+        LQR = auto()
         PID = auto()
-        TrapezoidalProfile = auto()
+        TrapezoidProfile = auto()
         ExponentialProfile = auto()
 
     class ExternalEncoderOptions(Enum):
@@ -81,27 +83,27 @@ class SmartMotorControllerConfig:
     _external_encoder: object
     _external_encoder_inverted: bool = False
     _followers: list[tuple[object, bool]]
-    _simple_feedforward: SimpleMotorFeedforward
+    _simple_feedforward: SimpleMotorFeedforwardMeters
     _elevator_feedforward: ElevatorFeedforward
     _arm_feedforward: ArmFeedforward
-    _sim_simple_feedforward: SimpleMotorFeedforward
+    _sim_simple_feedforward: SimpleMotorFeedforwardMeters
     _sim_elevator_feedforward: ElevatorFeedforward
     _sim_arm_feedforward: ArmFeedforward
-    _exponential_profile: ExponentialProfileMeterVolts
-    _trapezoid_profile: TrapezoidalProfile
-    _sim_exponential_profile: ExponentialProfileMeterVolts
+    _exponential_profile: ExponentialProfileMeterVolts.Constraints
+    _trapezoid_profile: TrapezoidProfile.Constraints
+    _sim_exponential_profile: ExponentialProfileMeterVolts.Constraints
     _pid: PIDController
     _lqr: LQRController
     _sim_pid: PIDController
     _sim_lqr: LQRController
     _gearing: MechanismGearing
-    _external_encoder_gearing: MechanismGearing = MechanismGearing(1)
+    _external_encoder_gearing: MechanismGearing = MechanismGearing.from_reduction_ratios(1)
     _mechanism_circumference: meters
     _control_period: seconds
     _open_loop_ramp_rate: seconds
     _closed_loop_ramp_rate: seconds
-    _stator_stall_current_limit: int
-    _supply_stall_current_limit: int
+    _stator_stall_current_limit: amperes
+    _supply_stall_current_limit: amperes
     _voltage_compensation: volts
     _idle_mode: MotorMode
     _mechanism_lower_limit: radians
@@ -126,13 +128,18 @@ class SmartMotorControllerConfig:
     _linear_closed_loop_controller: bool = False
     _velocity_trapezoidal_profile: bool = False
 
-    def __init__(self, subsystem: Subsystem = None, report = True) -> None:
-        if report:
-            hal.report(tResourceType.kResourceType_Framework, 1)
+    def __init__(self, 
+                 subsystem: Optional[Subsystem] = None
+                #  , report: bool = True
+                 ) -> None:
+        # if report:
+        #     hal.report(1, 1)
         self._subsystem = subsystem
 
     def clone(self) -> "SmartMotorControllerConfig":
-        new_config = SmartMotorControllerConfig(self._subsystem, False)
+        new_config = SmartMotorControllerConfig(self._subsystem
+                                                # , False
+                                                )
         new_config._reset_previous_config = self._reset_previous_config
         new_config._vendor_config = self._vendor_config
         new_config._missing_options = self._missing_options.copy()
@@ -317,7 +324,7 @@ class SmartMotorControllerConfig:
     def get_smart_controller_telemetry_config(self) -> SmartMotorControllerTelemetryConfig:
         return self._specified_telemetry_config
     
-    def get_stator_stall_current_limit(self) -> int:
+    def get_stator_stall_current_limit(self) -> amperes:
         self._basic_options.remove(SmartMotorControllerConfig.BasicOptions.StatorCurrentLimit)
         return self._stator_stall_current_limit
     
@@ -353,7 +360,7 @@ class SmartMotorControllerConfig:
         self._mechanism_upper_limit = high
         return self
     
-    def get_supply_stall_current_limit(self) -> int:
+    def get_supply_stall_current_limit(self) -> amperes:
         self._basic_options.remove(SmartMotorControllerConfig.BasicOptions.SupplyCurrentLimit)
         return self._supply_stall_current_limit
     
@@ -384,17 +391,17 @@ class SmartMotorControllerConfig:
         self._voltage_compensation = voltage
         return self
     
-    def with_followers(self, *followers: list[tuple[object, bool]]) -> "SmartMotorControllerConfig":
-        self._followers = followers
+    def with_followers(self, *followers: tuple[object, bool]) -> "SmartMotorControllerConfig":
+        self._followers = list(followers)
         return self
     
     def with_loosely_coupled_followers(self, *followers: SmartMotorController) -> "SmartMotorControllerConfig":
-        self._loosely_coupled_followers = followers
+        self._loosely_coupled_followers = list(followers)
         return self
 
     def clear_followers(self) -> "SmartMotorControllerConfig":
-        self._followers = None
-        # self._loosely_coupled_followers = None
+        self._followers = []
+        # self._loosely_coupled_followers = []
         return self
 
     def with_stator_current_limit(self, stall_current: amperes) -> "SmartMotorControllerConfig":
@@ -418,7 +425,7 @@ class SmartMotorControllerConfig:
         self._external_encoder_gearing = gearing
         return self
 
-    def get_followers(self) -> tuple[object, bool]:
+    def get_followers(self) -> list[tuple[object, bool]]:
         self._basic_options.remove(SmartMotorControllerConfig.BasicOptions.Followers)
         return self._followers
     
@@ -427,7 +434,7 @@ class SmartMotorControllerConfig:
         return self
 
     def with_gearing_from_reduction_ratio(self, reduction_ratio: float) -> "SmartMotorControllerConfig":
-        self._gearing = MechanismGearing(reduction_ratio)
+        self._gearing = MechanismGearing.from_reduction_ratios(reduction_ratio)
         return self
     
     def with_mechanism_circumference(self, circumference: meters) -> "SmartMotorControllerConfig":
@@ -501,13 +508,13 @@ class SmartMotorControllerConfig:
             self._elevator_feedforward = elevator_feedforward
         return self
     
-    def get_simple_feedforward(self) -> SimpleMotorFeedforward:
+    def get_simple_feedforward(self) -> SimpleMotorFeedforwardMeters:
         self._basic_options.remove(SmartMotorControllerConfig.BasicOptions.SimpleFeedforward)
         if RobotBase.isSimulation() and self._sim_simple_feedforward:
             return self._sim_simple_feedforward
         return self._simple_feedforward
     
-    def with_sim_simple_feedforward(self, simple_feedforward: SimpleMotorFeedforward) -> "SmartMotorControllerConfig":
+    def with_sim_simple_feedforward(self, simple_feedforward: SimpleMotorFeedforwardMeters) -> "SmartMotorControllerConfig":
         if not simple_feedforward:
             self._sim_simple_feedforward = None
         else:
@@ -516,7 +523,7 @@ class SmartMotorControllerConfig:
             self._sim_simple_feedforward = simple_feedforward
         return self
 
-    def with_simple_feedforward(self, simple_feedforward: SimpleMotorFeedforward) -> "SmartMotorControllerConfig":
+    def with_simple_feedforward(self, simple_feedforward: SimpleMotorFeedforwardMeters) -> "SmartMotorControllerConfig":
         if not simple_feedforward:
             self._simple_feedforward = None
         else:
@@ -530,7 +537,7 @@ class SmartMotorControllerConfig:
         self._sim_lqr = None
         if max_velocity and max_acceleration:
             self._sim_exponential_profile = None
-            self._sim_trapezoid_profile = TrapezoidalProfile.Constraints(max_velocity, max_acceleration)
+            self._sim_trapezoid_profile = TrapezoidProfile.Constraints(max_velocity, max_acceleration)
         return self
 
     def with_sim_closed_loop_lqr_controller(self, lqr_controller: LQRController) -> "SmartMotorControllerConfig":
@@ -543,22 +550,23 @@ class SmartMotorControllerConfig:
         self._sim_lqr = None
         return self
 
-    def with_trapezoidal_profile(self, profile: TrapezoidalProfile.Constraints) -> "SmartMotorControllerConfig":
-        DriverStation.reportWarning("Trapezoidal profile will be given radians/s and radians/s^2 for rotational closed loop controllers.", True)
-        DriverStation.reportWarning("Trapezoidal profile will be given meters/s and meters/s^2 for linear closed loop controllers.", True)
+    def with_trapezoidal_profile(self, profile: TrapezoidProfile.Constraints) -> "SmartMotorControllerConfig":
+        reportWarning("Trapezoidal profile will be given radians/s and radians/s^2 for rotational closed loop controllers.", True)
+        reportWarning("Trapezoidal profile will be given meters/s and meters/s^2 for linear closed loop controllers.", True)
         self._trapezoid_profile = profile
         self._exponential_profile = None
         return self
     
     def with_trapezoidal_profile_from_constants(self, max_velocity: meters_per_second | radians_per_second, max_acceleration: meters_per_second_squared | radians_per_second_squared) -> "SmartMotorControllerConfig":
         self._linear_closed_loop_controller = True
-        self._trapezoid_profile = TrapezoidalProfile.Constraints(max_velocity, max_acceleration)
+        self._trapezoid_profile = TrapezoidProfile.Constraints(max_velocity, max_acceleration)
         self._exponential_profile = None
         return self
     
     def with_exponential_profile(self, profile: ExponentialProfileMeterVolts.Constraints) -> "SmartMotorControllerConfig":
-        DriverStation.reportWarning("Exponential profile will be given radians/s and radians/s^2 for rotational closed loop controllers.", True)
-        DriverStation.reportWarning("Exponential profile will be given meters/s and meters/s^2 for linear closed loop controllers.", True)
+        reportWarning("Exponential profile will be given radians/s and radians/s^2 for rotational closed loop controllers.", True)
+        reportWarning("Exponential profile will be given meters/s and meters/s^2 for linear closed loop controllers.", True)
+        
         self._exponential_profile = profile
         self._trapezoid_profile = None
         return self
@@ -577,7 +585,7 @@ class SmartMotorControllerConfig:
 
     def with_exponential_profile_elevator(self, max_volts: volts, motor: DCMotor, mass: kilograms, drum_radius: meters) -> "SmartMotorControllerConfig":
         sysid = LinearSystemId.elevatorSystem(motor, mass, drum_radius, self._gearing.get_mechanism_to_rotor_ratio())
-        circumference = 2 * pi * drum_radius
+        self._circumference = 2 * pi * drum_radius
         
         A = sysid.A(0,0) # meters
         B = sysid.B(0,0) # meters
@@ -630,13 +638,13 @@ class SmartMotorControllerConfig:
             return self._sim_exponential_profile
         return self._exponential_profile
     
-    def get_trapezoidal_profile(self) -> TrapezoidalProfile.Constraints:
-        self._basic_options.remove(SmartMotorControllerConfig.BasicOptions.TrapezoidalProfile)
+    def get_trapezoidal_profile(self) -> TrapezoidProfile.Constraints:
+        self._basic_options.remove(SmartMotorControllerConfig.BasicOptions.TrapezoidProfile)
         if RobotBase.isSimulation() and self._sim_trapezoid_profile:
             return self._sim_trapezoid_profile
         return self._trapezoid_profile
     
-    def with_sim_feedforward(self, simple_feedforward: SimpleMotorFeedforward) -> "SmartMotorControllerConfig":
+    def with_sim_feedforward(self, simple_feedforward: SimpleMotorFeedforwardMeters) -> "SmartMotorControllerConfig":
         return self.with_sim_simple_feedforward(simple_feedforward)
 
     def with_linear_closed_loop_controller(self, use_linear: bool = True) -> "SmartMotorControllerConfig":
@@ -647,7 +655,7 @@ class SmartMotorControllerConfig:
         self._velocity_trapezoidal_profile = use_velocity
         return self
 
-    def with_feedforward(self, simple_feedforward: SimpleMotorFeedforward) -> "SmartMotorControllerConfig":
+    def with_feedforward(self, simple_feedforward: SimpleMotorFeedforwardMeters) -> "SmartMotorControllerConfig":
         return self.with_simple_feedforward(simple_feedforward)
     
     def get_closed_loop_control_period(self) -> seconds:
@@ -815,12 +823,12 @@ class SmartMotorControllerConfig:
     
     def with_external_encoder_gearing(self, gearing: MechanismGearing) -> "SmartMotorControllerConfig":
         if gearing.get_rotor_to_mechanism_ratio() > 1:
-            DriverStation.reportWarning("[IMPORTANT] Your gearing's rotor to mechanism ratio exceeds 1, and the external encoder will exceed the maximum reading, which WILL result in multiple angle's being read as the same 'angle.\n\tIgnore this warning IF your mechanism will never travel outside of the slice you are reading, adjust the offset accordingly.\n\tYou have been warned!", True)
+            reportWarning("[IMPORTANT] Your gearing's rotor to mechanism ratio exceeds 1, and the external encoder will exceed the maximum reading, which WILL result in multiple angle's being read as the same 'angle.\n\tIgnore this warning IF your mechanism will never travel outside of the slice you are reading, adjust the offset accordingly.\n\tYou have been warned!", True)
         self._external_encoder_gearing = gearing
         return self
     
     def with_external_encoder_gearing_from_reduction_ratio(self, reduction_ratio: float) -> "SmartMotorControllerConfig":
-        return self.with_external_encoder_gearing(MechanismGearing(reduction_ratio))
+        return self.with_external_encoder_gearing(MechanismGearing.from_reduction_ratios(reduction_ratio))
     
     def get_max_discontinuity_point(self) -> radians:
         if self._max_discontinuity_point and self._min_discontinuity_point and self._min_discontinuity_point != self._max_discontinuity_point - 2 * pi:

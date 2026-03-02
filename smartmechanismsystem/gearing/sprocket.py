@@ -20,8 +20,9 @@ class Sprocket:
 
         :param sprocket_reduction_stage: Sprocket teeth, in the form of "IN:OUT" => IN/OUT
         """
-        setup_stages(sprocket_reduction_stage)
+        self.setup_stages(list(sprocket_reduction_stage))
 
+    @staticmethod
     def from_stages(*reduction_stage: str) -> "Sprocket":
         """
         Construct the :class:`Sprocket` with the reduction stages given.
@@ -29,7 +30,7 @@ class Sprocket:
         :param reduction_stage: List of stages in the format of "IN:OUT".
         :return: Sprocket representation
         """
-        stages = []
+        stages: list[float] = []
         for stage in reduction_stage:
             parts = stage.split(":")
             if len(parts) == 0:
@@ -37,7 +38,7 @@ class Sprocket:
             _in = float(parts[0])
             _out = float(parts[1])
             stages.append(_in / _out)
-        return Sprocket(stages)
+        return Sprocket(*stages)
     
     def setup_stages(self, sprocket_reduction_stage: list[float]) -> None:
         """
@@ -53,24 +54,24 @@ class Sprocket:
             sprocket_ratio *= 1 / reduction_stage
         self.sprocket_reduction_ratio = sprocket_ratio
 
-    def times(self, x: float) -> "GearBox":
+    def times(self, x: float) -> "Sprocket":
         """
         Multiply the sprocket reduction ratio by X.
 
         :param x: X to multiply by.
         :return: :class:`Sprocket` for chaining.
         """
-        self.gear_reduction_ratio *= x
+        self.sprocket_reduction_ratio *= x
         return self
 
-    def div(self, x: float) -> "GearBox":
+    def div(self, x: float) -> "Sprocket":
         """
         Divide the sprocket reduction ratio by X.
 
         :param x: X to divide by.
         :return: :class:`Sprocket` for chaining.
         """
-        self.gear_reduction_ratio /= x
+        self.sprocket_reduction_ratio /= x
         return self
     
     def get_input_to_output_conversion_factor(self) -> float:
