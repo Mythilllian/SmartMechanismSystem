@@ -1,4 +1,17 @@
-__all__ = ["ArmConfigurationException", "DifferentialMechanismConfigurationException", "DoubleJointedArmConfigurationException", "ElevatorConfigurationException", "FlyWheelConfigurationException", "InvalidStageGivenException", "MotorNotPresentException", "NoStagesGivenException", "PivotConfigurationException", "SmartMotorControllerConfigurationException", "SwerveDriveConfigurationException"]
+__all__ = [
+    "ArmConfigurationException", 
+    "DifferentialMechanismConfigurationException", 
+    "DoubleJointedArmConfigurationException", 
+    "ElevatorConfigurationException", 
+    "FlyWheelConfigurationException", 
+    "InvalidStageGivenException", 
+    "MotorNotPresentException", 
+    "NoStagesGivenException", 
+    "PivotConfigurationException", 
+    "SmartMotorControllerConfigurationException", 
+    "SwerveDriveConfigurationException", 
+    "UnitException"
+    ]
 
 class ArmConfigurationException(RuntimeError):
     """
@@ -155,4 +168,19 @@ class SwerveDriveConfigurationException(RuntimeError):
         :param remedy_function: Remedy function to use.
         """
         self.message = message + "!\n" + result + "\nPlease use SwerveDriveConfig." + remedy_function + " to fix this error."
+        super().__init__(self.message)
+
+class UnitException(RuntimeError):
+    """
+    Exception for when a unit is used incorrectly.
+    """
+    def __init__(self, message: str, result: str, remedy_function: str):
+        """
+        Unit exception.
+
+        :param message: Message to display.
+        :param result: Result of the configuration.
+        :param remedy_function: Remedy function to use.
+        """
+        self.message = message + "!\n" + result + "\nPlease use UnitConfig." + remedy_function + " to fix this error."
         super().__init__(self.message)
