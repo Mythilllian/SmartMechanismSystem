@@ -1,5 +1,6 @@
+# pyright: reportAttributeAccessIssue=false
+
 from math import pi
-from typing import Optional
 from commands2 import Subsystem
 from wpimath.controller import SimpleMotorFeedforwardMeters, ElevatorFeedforward, ArmFeedforward
 from wpimath.trajectory import TrapezoidProfile, ExponentialProfileMeterVolts
@@ -15,7 +16,7 @@ from smartmechanismsystem.exceptions.exceptions import SmartMotorControllerConfi
 from smartmechanismsystem.motorcontrollers.smartmotorcontroller import SmartMotorController
 from smartmechanismsystem.gearing.mechanismgearing import MechanismGearing
 from smartmechanismsystem.math.lqr import LQRController
-from smartmechanismsystem.telemetry.telemetry import SmartMotorControllerTelemetryConfig
+from smartmechanismsystem.telemetry import SmartMotorControllerTelemetryConfig
 
 class SmartMotorControllerConfig:
     class BasicOptions(Enum):
@@ -129,7 +130,7 @@ class SmartMotorControllerConfig:
     _velocity_trapezoidal_profile: bool = False
 
     def __init__(self, 
-                 subsystem: Optional[Subsystem] = None
+                 subsystem: Subsystem = None
                 #  , report: bool = True
                  ) -> None:
         # if report:

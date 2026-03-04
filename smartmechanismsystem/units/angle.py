@@ -1,8 +1,11 @@
 from smartmechanismsystem.units.unit import Unit, UnitValue
+import math
 
 __all__ = ["AngleUnit", "AngleValue", "radians", "nanoradians", "microradians", "milliradians", "kiloradians", "degrees", "arcminutes", "arcseconds", "milliarcseconds", "turns", "gradians"]
 
 class AngleUnit(Unit):
+    TYPE = "angle"
+
     def __init__(self, base_value: float = 1.0, name: str = "radians", abbreviation: str = "rad") -> None:
         self.base_value = base_value
         self.name = name
@@ -12,7 +15,17 @@ class AngleValue(UnitValue):
     unit: AngleUnit
 
     def __init__(self, magnitude: float, unit: AngleUnit = AngleUnit()) -> None:
-        self.super().__init__(magnitude, unit)
+        super().__init__(magnitude, unit)
+
+    def sin_of_angle(self) -> float:
+        return math.sin(super().get_magnitude_in_base_unit())
+    
+    def cos_of_angle(self) -> float:
+        return math.cos(super().get_magnitude_in_base_unit())
+    
+    def tan_of_angle(self) -> float:
+        return math.tan(super().get_magnitude_in_base_unit())
+    
 
 radians = AngleUnit(base_value=1.0, name="radians", abbreviation="rad")
 nanoradians = AngleUnit(base_value=1e-9, name="nanoradians", abbreviation="nrad")
